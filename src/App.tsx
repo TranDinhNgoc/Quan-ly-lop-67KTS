@@ -31,6 +31,7 @@ import {
   query, 
   orderBy,
   where,
+  or,
   addDoc,
   doc,
   updateDoc,
@@ -92,7 +93,12 @@ export default function App() {
     if (user.email === ADMIN_EMAIL) {
       q = query(collection(db, 'students'), orderBy('ho_ten', 'asc'));
     } else {
-      q = query(collection(db, 'students'), where('gmail', '==', user.email.toLowerCase()));
+      // Try to find by exact email or lowercase version in either gmail or email_truong
+      const emailsToTry = Array.from(new Set([user.email, user.email.toLowerCase()]));
+      q = query(collection(db, 'students'), or(
+        where('gmail', 'in', emailsToTry),
+        where('email_truong', 'in', emailsToTry)
+      ));
     }
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -105,9 +111,34 @@ export default function App() {
           setStudents(studentData);
           setRole('admin');
           setIsUnauthorized(false);
+          
+          // Data normalization: Ensure all email fields are lowercase and trimmed for future queries
+          studentData.forEach(async (s) => {
+            const updates: any = {};
+            const normalizedGmail = s.gmail?.toLowerCase()?.trim();
+            const normalizedEmailTruong = s.email_truong?.toLowerCase()?.trim();
+            
+            if (s.gmail && s.gmail !== normalizedGmail) {
+              updates.gmail = normalizedGmail;
+            }
+            if (s.email_truong && s.email_truong !== normalizedEmailTruong) {
+              updates.email_truong = normalizedEmailTruong;
+            }
+            
+            if (Object.keys(updates).length > 0) {
+              try {
+                await updateDoc(doc(db, 'students', s.id), updates);
+              } catch (err) {
+                console.error("Failed to normalize email for student:", s.ho_ten, err);
+              }
+            }
+          });
         } else {
           const userEmailLower = user.email.toLowerCase();
-          const myRecord = studentData.filter(s => (s.gmail || '').toLowerCase() === userEmailLower);
+          const myRecord = studentData.filter(s => 
+            (s.gmail || '').toLowerCase() === userEmailLower || 
+            (s.email_truong || '').toLowerCase() === userEmailLower
+          );
           if (myRecord.length > 0) {
           setStudents(myRecord);
           setRole('student');
@@ -610,8 +641,8 @@ export default function App() {
                     const scores = calculateScores(data);
                     const studentWithLowerEmail = {
                       ...data,
-                      gmail: data.gmail?.toLowerCase(),
-                      email_truong: data.email_truong?.toLowerCase()
+                      gmail: data.gmail?.toLowerCase()?.trim(),
+                      email_truong: data.email_truong?.toLowerCase()?.trim()
                     };
                     await updateDoc(doc(db, 'students', selectedStudentId), { ...studentWithLowerEmail, ...scores });
                   }}
@@ -669,8 +700,8 @@ export default function App() {
           const scores = calculateScores(data);
           const studentWithLowerEmail = {
             ...data,
-            gmail: data.gmail?.toLowerCase(),
-            email_truong: data.email_truong?.toLowerCase()
+            gmail: data.gmail?.toLowerCase()?.trim(),
+            email_truong: data.email_truong?.toLowerCase()?.trim()
           };
           await addDoc(collection(db, 'students'), { ...studentWithLowerEmail, ...scores });
           setIsAddModalOpen(false);
@@ -685,8 +716,8 @@ export default function App() {
           for (const s of studentsData) {
             const studentWithLowerEmail = {
               ...s,
-              gmail: s.gmail?.toLowerCase(),
-              email_truong: s.email_truong?.toLowerCase()
+              gmail: s.gmail?.toLowerCase()?.trim(),
+              email_truong: s.email_truong?.toLowerCase()?.trim()
             };
             await addDoc(collection(db, 'students'), studentWithLowerEmail);
           }

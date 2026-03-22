@@ -13,7 +13,9 @@ service cloud.firestore {
     }
 
     function isStudent(studentData) {
-      return isAuthenticated() && request.auth.token.email == studentData.gmail;
+      return isAuthenticated() && 
+        (request.auth.token.email.lower() == studentData.gmail.lower() || 
+         request.auth.token.email.lower() == studentData.email_truong.lower());
     }
 
     function isValidStudent(data) {
