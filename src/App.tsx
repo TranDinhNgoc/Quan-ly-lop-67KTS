@@ -524,7 +524,8 @@ export default function App() {
         <header className="bg-white border-b border-stone-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
               <h2 className="text-2xl font-bold text-stone-900">
-                {activeTab === 'dashboard' && 'Bảng điều khiển'}
+                {(activeTab === 'dashboard' || activeTab === 'my-profile') && !isAdmin && 'Hồ sơ cá nhân'}
+                {activeTab === 'dashboard' && isAdmin && 'Bảng điều khiển'}
                 {activeTab === 'students' && 'Danh sách lớp'}
                 {activeTab === 'officers' && 'Ban cán sự lớp'}
                 {activeTab === 'conduct' && 'Điểm rèn luyện'}
@@ -545,7 +546,8 @@ export default function App() {
                 {activeTab === 'my-profile' && 'Hồ sơ cá nhân'}
               </h2>
               <p className="text-sm text-stone-500">
-                {activeTab === 'dashboard' && 'Theo dõi tình hình lớp học thời gian thực'}
+                {(activeTab === 'dashboard' || activeTab === 'my-profile') && !isAdmin && 'Kiểm tra và cập nhật thông tin cá nhân'}
+                {activeTab === 'dashboard' && isAdmin && 'Theo dõi tình hình lớp học thời gian thực'}
                 {activeTab === 'students' && `Tổng số ${students.length} sinh viên`}
                 {activeTab === 'officers' && `Tổng số ${students.filter(s => s.chuc_danh && s.chuc_danh.trim() !== "").length} cán sự`}
                 {activeTab === 'conduct' && 'Quản lý và theo dõi điểm rèn luyện sinh viên'}
@@ -609,7 +611,10 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                {activeTab === 'dashboard' && <Dashboard students={students} onSelectStudent={setSelectedStudentId} />}
+                {activeTab === 'dashboard' && isAdmin && <Dashboard students={students} onSelectStudent={setSelectedStudentId} />}
+                {(activeTab === 'dashboard' || activeTab === 'my-profile') && !isAdmin && students.length > 0 && (
+                  <StudentDashboard student={students[0]} />
+                )}
                 {activeTab === 'students' && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
                 {activeTab === 'officers' && <StudentList students={students.filter(s => s.chuc_danh && s.chuc_danh.trim() !== "")} onSelectStudent={setSelectedStudentId} />}
                 {activeTab === 'conduct' && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
@@ -619,8 +624,12 @@ export default function App() {
                 {activeTab === 'warnings' && <StudentList students={students.filter(s => s.risk_level === 'high' || s.risk_level === 'medium')} onSelectStudent={setSelectedStudentId} filterType="risk" />}
                 {activeTab === 'potential' && <StudentList students={students.filter(s => s.potential_level !== 'none')} onSelectStudent={setSelectedStudentId} filterType="potential" />}
                 {activeTab === 'student-ui-mgmt' && <StudentUIManagement students={students} onPreview={(id) => { setSelectedStudentId(id); setActiveTab('my-profile'); }} />}
-                {activeTab === 'my-profile' && students.length > 0 && (
-                  <StudentDashboard student={students[0]} />
+                {activeTab === 'my-profile' && isAdmin && students.length > 0 && (
+                  <div className="bg-white p-12 rounded-3xl border border-stone-200 text-center">
+                    <UserCircle size={64} className="mx-auto text-stone-300 mb-4" />
+                    <h3 className="text-xl font-bold text-stone-900 mb-2">Chế độ Admin</h3>
+                    <p className="text-stone-500">Bạn đang đăng nhập với quyền Admin. Vui lòng sử dụng các tính năng quản lý.</p>
+                  </div>
                 )}
                 {activeTab === 'my-profile' && students.length === 0 && (
                   <div className="bg-white p-12 rounded-3xl border border-stone-200 text-center">
