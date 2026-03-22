@@ -236,7 +236,7 @@ export default function App() {
         { ma_sinh_vien: "2554104785", ho_ten: "Nguyễn Thị Minh Trang", gioi_tinh: "Nữ", ngay_sinh: "2007-01-01", so_dien_thoai: "0338525408" },
         { ma_sinh_vien: "2554104784", ho_ten: "Nguyễn Thị Kiều Trang", gioi_tinh: "Nữ", ngay_sinh: "2007-09-02", so_dien_thoai: "0982950207" },
         { ma_sinh_vien: "2554104788", ho_ten: "Phạm Thị Vân", gioi_tinh: "Nữ", ngay_sinh: "2006-01-20", so_dien_thoai: "0355534083" },
-        { ma_sinh_vien: "2554104787", ho_ten: "Bùi Thị Thảo Vân", gioi_tinh: "Nữ", ngay_sinh: "2007-07-02", so_dien_thoai: "0388783392" },
+        { ma_sinh_vien: "2554104787", ho_ten: "Bùi Thị Thảo Vân", gioi_tinh: "Nữ", ngay_sinh: "2007-07-02", so_dien_thoai: "0388783392", academic: { diem_trung_binh: 3.25, so_tin_chi_no: 0, so_mon_truot: 0, so_buoi_vang: 2, vi_pham_thi_cu: false }, conduct: { diem_ren_luyen: 85, vi_pham_ky_luat: 0, muc_do_vi_pham: 'none' }, risk_level: 'low', potential_level: 'potential', ghi_chu: "Em cần chú ý hơn trong việc tham gia các hoạt động của Đoàn Hội." },
         { ma_sinh_vien: "2554104789", ho_ten: "Ngô Phương Việt", gioi_tinh: "Nam", ngay_sinh: "2007-03-31", so_dien_thoai: "0862554003" },
         { ma_sinh_vien: "2554104790", ho_ten: "Vũ Quang Vinh", gioi_tinh: "Nam", ngay_sinh: "2007-11-18", so_dien_thoai: "0936373081" },
         { ma_sinh_vien: "2554104791", ho_ten: "Nguyễn Đăng Vũ", gioi_tinh: "Nam", ngay_sinh: "2007-09-12", so_dien_thoai: "0366584775" },
@@ -662,6 +662,12 @@ export default function App() {
                 {activeTab === 'dashboard' && isAdmin && <Dashboard students={students} onSelectStudent={setSelectedStudentId} />}
                 {activeTab === 'dashboard' && !isAdmin && students.length > 0 && (
                   <StudentDashboard student={students[0]} />
+                )}
+                {activeTab === 'my-profile' && isAdmin && selectedStudentId && (
+                  <StudentDashboard 
+                    student={students.find(s => s.id === selectedStudentId)!} 
+                    onClosePreview={() => { setSelectedStudentId(null); setActiveTab('student-ui-mgmt'); }}
+                  />
                 )}
                 {activeTab === 'students' && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
                 {activeTab === 'officers' && <StudentList students={students.filter(s => s.chuc_danh && s.chuc_danh.trim() !== "")} onSelectStudent={setSelectedStudentId} />}
