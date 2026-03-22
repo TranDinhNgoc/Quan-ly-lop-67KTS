@@ -30,6 +30,7 @@ import {
   onSnapshot, 
   query, 
   orderBy,
+  where,
   addDoc,
   doc,
   updateDoc,
@@ -87,23 +88,27 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    let q = query(collection(db, 'students'), orderBy('ho_ten', 'asc'));
+    let q;
+    if (user.email === ADMIN_EMAIL) {
+      q = query(collection(db, 'students'), orderBy('ho_ten', 'asc'));
+    } else {
+      q = query(collection(db, 'students'), where('gmail', '==', user.email.toLowerCase()));
+    }
     
-    // If student, they can only see their own record if the rules allow it
-    // But for the UI, we filter it here too
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const studentData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Student[];
       
-      if (user.email === ADMIN_EMAIL) {
-        setStudents(studentData);
-        setRole('admin');
-        setIsUnauthorized(false);
-      } else {
-        const myRecord = studentData.filter(s => s.gmail === user.email);
-        if (myRecord.length > 0) {
+        if (user.email === ADMIN_EMAIL) {
+          setStudents(studentData);
+          setRole('admin');
+          setIsUnauthorized(false);
+        } else {
+          const userEmailLower = user.email.toLowerCase();
+          const myRecord = studentData.filter(s => (s.gmail || '').toLowerCase() === userEmailLower);
+          if (myRecord.length > 0) {
           setStudents(myRecord);
           setRole('student');
           setActiveTab('my-profile');
@@ -215,8 +220,8 @@ export default function App() {
           ...s,
           que_quan: "Chưa cập nhật",
           cho_o_hien_nay: "Chưa cập nhật",
-          gmail: (s as any).gmail || `${s.ma_sinh_vien}@gmail.com`,
-          email_truong: `${s.ma_sinh_vien}@tlu.edu.vn`,
+          gmail: (s as any).gmail?.toLowerCase() || `${s.ma_sinh_vien}@gmail.com`.toLowerCase(),
+          email_truong: `${s.ma_sinh_vien}@tlu.edu.vn`.toLowerCase(),
           chuc_danh: (s as any).chuc_danh || "",
           ghi_chu: "",
           ngay_vao_doan: "",
@@ -603,7 +608,12 @@ export default function App() {
                   onBack={isAdmin ? () => setSelectedStudentId(null) : undefined} 
                   onUpdate={async (data) => {
                     const scores = calculateScores(data);
-                    await updateDoc(doc(db, 'students', selectedStudentId), { ...data, ...scores });
+                    const studentWithLowerEmail = {
+                      ...data,
+                      gmail: data.gmail?.toLowerCase(),
+                      email_truong: data.email_truong?.toLowerCase()
+                    };
+                    await updateDoc(doc(db, 'students', selectedStudentId), { ...studentWithLowerEmail, ...scores });
                   }}
                   onDelete={async (id) => {
                     await deleteDoc(doc(db, 'students', id));
@@ -657,7 +667,12 @@ export default function App() {
         onClose={() => setIsAddModalOpen(false)} 
         onAdd={async (data) => {
           const scores = calculateScores(data);
-          await addDoc(collection(db, 'students'), { ...data, ...scores });
+          const studentWithLowerEmail = {
+            ...data,
+            gmail: data.gmail?.toLowerCase(),
+            email_truong: data.email_truong?.toLowerCase()
+          };
+          await addDoc(collection(db, 'students'), { ...studentWithLowerEmail, ...scores });
           setIsAddModalOpen(false);
         }}
       />
@@ -668,7 +683,12 @@ export default function App() {
         existingIds={new Set(students.map(s => s.ma_sinh_vien))}
         onImport={async (studentsData) => {
           for (const s of studentsData) {
-            await addDoc(collection(db, 'students'), s);
+            const studentWithLowerEmail = {
+              ...s,
+              gmail: s.gmail?.toLowerCase(),
+              email_truong: s.email_truong?.toLowerCase()
+            };
+            await addDoc(collection(db, 'students'), studentWithLowerEmail);
           }
           setIsImportModalOpen(false);
         }}

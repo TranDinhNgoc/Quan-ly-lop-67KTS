@@ -25,7 +25,7 @@ const COLUMN_ALIASES: Record<string, string[]> = {
   ngay_vao_dang: ["ngày vào đảng", "ngay vao dang", "ngày đảng"],
   gioi_tinh: ["giới tính", "gioi tinh", "gender", "phái"],
   so_dien_thoai: ["số điện thoại", "sdt", "phone", "số đt", "điện thoại"],
-  gmail: ["gmail", "thư điện tử gmail", "email cá nhân"],
+  gmail: ["gmail", "email", "thư điện tử gmail", "email cá nhân"],
   email_truong: ["email trường", "email tlu", "thư điện tử trường", "email @tlu.edu.vn"],
   cho_o_hien_nay: ["chỗ ở hiện nay", "địa chỉ hiện tại", "cho o hien nay", "tạm trú"],
   chuc_danh: ["chức danh", "chức vụ", "chuc danh", "chuc vu", "vị trí"],

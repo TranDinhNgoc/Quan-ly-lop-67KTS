@@ -28,7 +28,7 @@ export default function ImportExcelModal({ isOpen, onClose, onImport, existingId
     { id: 'que_quan', label: 'Quê quán', required: false },
     { id: 'gioi_tinh', label: 'Giới tính', required: false },
     { id: 'so_dien_thoai', label: 'Số điện thoại', required: false },
-    { id: 'email', label: 'Email', required: false },
+    { id: 'gmail', label: 'Gmail', required: false },
     { id: 'cho_o_hien_nay', label: 'Chỗ ở hiện nay', required: false },
     { id: 'ngay_vao_doan', label: 'Ngày vào Đoàn', required: false },
     { id: 'ngay_vao_dang', label: 'Ngày vào Đảng', required: false },
