@@ -11,6 +11,9 @@ import {
 import { Student } from '../types';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
+import StudentDashboard from './StudentDashboard';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 
 interface StudentUIManagementProps {
   students: Student[];
@@ -19,6 +22,7 @@ interface StudentUIManagementProps {
 
 export default function StudentUIManagement({ students, onPreview }: StudentUIManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [previewStudentId, setPreviewStudentId] = useState<string | null>(null);
 
   const filteredStudents = students.filter(s => 
     s.ho_ten.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -106,7 +110,11 @@ export default function StudentUIManagement({ students, onPreview }: StudentUIMa
             </thead>
             <tbody className="divide-y divide-stone-100">
               {filteredStudents.map((student) => (
-                <tr key={student.id} className="hover:bg-stone-50/50 transition-colors group">
+                <tr 
+                  key={student.id} 
+                  className="hover:bg-stone-50/50 transition-colors group cursor-pointer"
+                  onClick={() => setPreviewStudentId(student.id)}
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center text-stone-500 font-bold text-xs">
@@ -123,7 +131,10 @@ export default function StudentUIManagement({ students, onPreview }: StudentUIMa
                   </td>
                   <td className="px-6 py-4">
                     <button 
-                      onClick={() => toggleAllowEdit(student)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAllowEdit(student);
+                      }}
                       className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border transition-all ${
                         student.allow_edit 
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
@@ -136,7 +147,10 @@ export default function StudentUIManagement({ students, onPreview }: StudentUIMa
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
-                        onClick={() => onPreview(student.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewStudentId(student.id);
+                        }}
                         className="p-2 text-stone-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                         title="Xem thử giao diện SV"
                       >
@@ -171,6 +185,46 @@ export default function StudentUIManagement({ students, onPreview }: StudentUIMa
           </p>
         </div>
       </div>
+
+      {/* Student UI Preview Modal */}
+      <AnimatePresence>
+        {previewStudentId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-stone-50 w-full max-w-5xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b border-stone-200 bg-white flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-stone-900">Xem trước giao diện sinh viên</h3>
+                  <p className="text-sm text-stone-500">Đang xem dưới góc nhìn của: <span className="font-bold text-emerald-600">{students.find(s => s.id === previewStudentId)?.ho_ten}</span></p>
+                </div>
+                <button 
+                  onClick={() => setPreviewStudentId(null)}
+                  className="p-2 hover:bg-stone-100 rounded-xl transition-all text-stone-400 hover:text-stone-900"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-8">
+                {students.find(s => s.id === previewStudentId) && (
+                  <StudentDashboard student={students.find(s => s.id === previewStudentId)!} />
+                )}
+              </div>
+              <div className="p-4 bg-white border-t border-stone-200 text-center">
+                <button 
+                  onClick={() => setPreviewStudentId(null)}
+                  className="px-8 py-2.5 bg-stone-900 text-white rounded-xl font-bold hover:bg-stone-800 transition-all"
+                >
+                  Đóng bản xem trước
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
