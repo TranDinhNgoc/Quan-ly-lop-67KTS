@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   User, 
   GraduationCap, 
@@ -6,11 +6,15 @@ import {
   Award,
   ShieldCheck,
   Zap,
-  MessageSquare
+  MessageSquare,
+  Download,
+  Loader2
 } from 'lucide-react';
 import { Student } from '../types';
 import { getActionSuggestions } from '../utils/scoring';
 import { motion } from 'framer-motion';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface StudentDashboardProps {
   student: Student;
@@ -18,6 +22,8 @@ interface StudentDashboardProps {
 }
 
 export default function StudentDashboard({ student, onClosePreview }: StudentDashboardProps) {
+  const [isExporting, setIsExporting] = useState(false);
+  const dashboardRef = useRef<HTMLDivElement>(null);
   const suggestions = getActionSuggestions(student);
 
   const getGPAClassification = (gpa: number) => {
@@ -34,8 +40,49 @@ export default function StudentDashboard({ student, onClosePreview }: StudentDas
     return 'Trung bình';
   };
 
+  const handleExportPDF = async () => {
+    if (!dashboardRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      // Create a clone of the dashboard to modify for PDF
+      const element = dashboardRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f5f5f4', // Match stone-50
+        onclone: (clonedDoc) => {
+          // Hide elements that shouldn't be in the PDF
+          const closeBtn = clonedDoc.querySelector('.close-preview-btn');
+          const exportBtn = clonedDoc.querySelector('.export-btn');
+          if (closeBtn) (closeBtn as HTMLElement).style.display = 'none';
+          if (exportBtn) (exportBtn as HTMLElement).style.display = 'none';
+        }
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10; // Margin top
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`Ho_so_sinh_vien_${student.ma_sinh_vien}.pdf`);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Có lỗi xảy ra khi xuất hồ sơ. Vui lòng thử lại.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6 p-4 md:p-8 pb-24 relative">
+    <div ref={dashboardRef} className="max-w-5xl mx-auto space-y-6 p-4 md:p-8 pb-24 relative bg-stone-50/30">
       {/* Welcome Header */}
       <div className="bg-[#0f9d58] rounded-[2rem] p-8 md:p-12 text-white shadow-lg relative overflow-hidden">
         <div className="relative z-10 flex items-center justify-between">
@@ -43,8 +90,18 @@ export default function StudentDashboard({ student, onClosePreview }: StudentDas
             <h2 className="text-3xl md:text-4xl font-bold mb-3">Chào mừng, {student.ho_ten}!</h2>
             <p className="text-white/90 text-lg">Dưới đây là tổng quan về kết quả học tập và rèn luyện của bạn.</p>
           </div>
-          <div className="hidden md:block opacity-20">
-            <GraduationCap size={120} />
+          <div className="flex flex-col items-end gap-4">
+            <div className="hidden md:block opacity-20">
+              <GraduationCap size={120} />
+            </div>
+            <button 
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="export-btn bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 transition-all backdrop-blur-sm border border-white/30 disabled:opacity-50"
+            >
+              {isExporting ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
+              {isExporting ? 'Đang xuất...' : 'Xuất hồ sơ (PDF)'}
+            </button>
           </div>
         </div>
       </div>
@@ -171,7 +228,7 @@ export default function StudentDashboard({ student, onClosePreview }: StudentDas
 
       {/* Close Preview Button (Only for Admin Preview) */}
       {onClosePreview && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 close-preview-btn">
           <button 
             onClick={onClosePreview}
             className="bg-stone-900 text-white px-8 py-4 rounded-full font-bold shadow-2xl hover:bg-stone-800 transition-all flex items-center gap-3"
