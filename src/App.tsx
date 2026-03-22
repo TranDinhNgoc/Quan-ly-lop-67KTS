@@ -15,7 +15,8 @@ import {
   UserCheck,
   BookOpen,
   Award,
-  BarChart3
+  BarChart3,
+  Monitor
 } from 'lucide-react';
 import { 
   onAuthStateChanged, 
@@ -43,14 +44,17 @@ import StudentList from './components/StudentList';
 import StudentDetail from './components/StudentDetail';
 import AddStudentModal from './components/AddStudentModal';
 import ImportExcelModal from './components/ImportExcelModal';
+import StudentDashboard from './components/StudentDashboard';
+import StudentUIManagement from './components/StudentUIManagement';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<'admin' | 'student' | null>(null);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'officers' | 'warnings' | 'potential' | 'conduct' | 'conduct-25-26' | 'conduct-26-27' | 'conduct-27-28' | 'conduct-28-29' | 'summary' | 'summary-25-26' | 'summary-26-27' | 'summary-27-28' | 'summary-28-29' | 'summary-internship' | 'summary-thesis' | 'my-profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'officers' | 'warnings' | 'potential' | 'student-ui-mgmt' | 'conduct' | 'conduct-25-26' | 'conduct-26-27' | 'conduct-27-28' | 'conduct-28-29' | 'summary' | 'summary-25-26' | 'summary-26-27' | 'summary-27-28' | 'summary-28-29' | 'summary-internship' | 'summary-thesis' | 'my-profile'>('dashboard');
   const [isClassMgmtOpen, setIsClassMgmtOpen] = useState(true);
   const [isConductOpen, setIsConductOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
@@ -66,14 +70,14 @@ export default function App() {
       if (u) {
         if (u.email === ADMIN_EMAIL) {
           setRole('admin');
+          setLoading(false);
         } else {
-          setRole('student');
-          setActiveTab('my-profile');
+          // Role will be determined in onSnapshot
         }
       } else {
         setRole(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -93,15 +97,26 @@ export default function App() {
       
       if (user.email === ADMIN_EMAIL) {
         setStudents(studentData);
+        setRole('admin');
+        setIsUnauthorized(false);
       } else {
         const myRecord = studentData.filter(s => s.gmail === user.email);
-        setStudents(myRecord);
         if (myRecord.length > 0) {
+          setStudents(myRecord);
+          setRole('student');
+          setActiveTab('my-profile');
           setSelectedStudentId(myRecord[0].id);
+          setIsUnauthorized(false);
+        } else {
+          setStudents([]);
+          setRole(null);
+          setIsUnauthorized(true);
         }
       }
+      setLoading(false);
     }, (error) => {
       console.error("Firestore Error: ", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -251,7 +266,7 @@ export default function App() {
     );
   }
 
-  if (!user) {
+  if (!user || isUnauthorized) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-stone-50 p-4">
         <motion.div 
@@ -259,18 +274,34 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center border border-stone-200"
         >
-          <div className="w-20 h-20 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <UserCircle className="w-12 h-12 text-emerald-600" />
+          <div className={`w-20 h-20 ${isUnauthorized ? 'bg-red-100' : 'bg-emerald-100'} rounded-2xl flex items-center justify-center mx-auto mb-6`}>
+            {isUnauthorized ? <AlertTriangle className="w-12 h-12 text-red-600" /> : <UserCircle className="w-12 h-12 text-emerald-600" />}
           </div>
           <h1 className="text-3xl font-bold text-stone-900 mb-2">EduTrack Pro</h1>
-          <p className="text-stone-500 mb-8">Hệ thống quản lý lớp học thông minh dành cho Giảng viên & Sinh viên</p>
-          <button 
-            onClick={handleLogin}
-            className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-semibold transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-200"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6 bg-white rounded-full p-1" alt="Google" />
-            Đăng nhập với Google
-          </button>
+          <p className="text-stone-500 mb-8">
+            {isUnauthorized 
+              ? `Tài khoản ${user?.email} chưa được đăng ký trong hệ thống. Vui lòng liên hệ Giảng viên.` 
+              : 'Hệ thống quản lý lớp học thông minh dành cho Giảng viên & Sinh viên'}
+          </p>
+          
+          {isUnauthorized ? (
+            <button 
+              onClick={handleLogout}
+              className="w-full py-4 px-6 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl font-semibold transition-all flex items-center justify-center gap-3 shadow-lg"
+            >
+              <LogOut size={20} />
+              Đăng xuất & Thử tài khoản khác
+            </button>
+          ) : (
+            <button 
+              onClick={handleLogin}
+              className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-semibold transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-200"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6 bg-white rounded-full p-1" alt="Google" />
+              Đăng nhập với Google
+            </button>
+          )}
+          
           <p className="mt-6 text-xs text-stone-400">
             Sử dụng email đã đăng ký để truy cập hệ thống.
           </p>
@@ -452,6 +483,12 @@ export default function App() {
                   active={activeTab === 'potential'} 
                   onClick={() => { setActiveTab('potential'); setSelectedStudentId(null); }} 
                 />
+                <NavItem 
+                  icon={<Monitor size={20} />} 
+                  label="Quản lý giao diện SV" 
+                  active={activeTab === 'student-ui-mgmt'} 
+                  onClick={() => { setActiveTab('student-ui-mgmt'); setSelectedStudentId(null); }} 
+                />
               </>
             ) : (
               <NavItem 
@@ -504,6 +541,7 @@ export default function App() {
                 {activeTab === 'summary-thesis' && 'Điểm khóa luận tốt nghiệp'}
                 {activeTab === 'warnings' && 'Hệ thống Cảnh báo sớm'}
                 {activeTab === 'potential' && 'Sinh viên Tiềm năng'}
+                {activeTab === 'student-ui-mgmt' && 'Quản lý giao diện Sinh viên'}
                 {activeTab === 'my-profile' && 'Hồ sơ cá nhân'}
               </h2>
               <p className="text-sm text-stone-500">
@@ -516,6 +554,7 @@ export default function App() {
                 {activeTab.startsWith('summary-') && 'Thống kê kết quả học tập chi tiết'}
                 {activeTab === 'warnings' && 'Phát hiện sinh viên có nguy cơ cao'}
                 {activeTab === 'potential' && 'Phát hiện nhân tố xuất sắc'}
+                {activeTab === 'student-ui-mgmt' && 'Quản lý quyền hạn và xem trước giao diện sinh viên'}
                 {activeTab === 'my-profile' && 'Kiểm tra và cập nhật thông tin cá nhân'}
               </p>
           </div>
@@ -579,6 +618,10 @@ export default function App() {
                 {activeTab.startsWith('summary-') && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
                 {activeTab === 'warnings' && <StudentList students={students.filter(s => s.risk_level === 'high' || s.risk_level === 'medium')} onSelectStudent={setSelectedStudentId} filterType="risk" />}
                 {activeTab === 'potential' && <StudentList students={students.filter(s => s.potential_level !== 'none')} onSelectStudent={setSelectedStudentId} filterType="potential" />}
+                {activeTab === 'student-ui-mgmt' && <StudentUIManagement students={students} onPreview={(id) => { setSelectedStudentId(id); setActiveTab('my-profile'); }} />}
+                {activeTab === 'my-profile' && students.length > 0 && (
+                  <StudentDashboard student={students[0]} />
+                )}
                 {activeTab === 'my-profile' && students.length === 0 && (
                   <div className="bg-white p-12 rounded-3xl border border-stone-200 text-center">
                     <UserCircle size={64} className="mx-auto text-stone-300 mb-4" />
