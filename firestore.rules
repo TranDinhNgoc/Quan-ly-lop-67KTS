@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "manamedruby@gmail.com" || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin");
+    }
+
+    function isStudent(studentData) {
+      return isAuthenticated() && request.auth.token.email == studentData.email;
+    }
+
+    function isValidStudent(data) {
+      return data.ma_sinh_vien is string && data.ma_sinh_vien.size() > 0 &&
+             data.ho_ten is string && data.ho_ten.size() > 0;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /students/{studentId} {
+      // Admins can read all. Students can read their own record.
+      allow read: if isAdmin() || isStudent(resource.data);
+      
+      // Only admins can create students.
+      allow create: if isAdmin() && isValidStudent(request.resource.data);
+      
+      // Admins can update all. 
+      // Students can update their own record ONLY if allow_edit is true.
+      allow update: if (isAdmin() && isValidStudent(request.resource.data)) || 
+                      (isStudent(resource.data) && 
+                       resource.data.allow_edit == true && 
+                       isValidStudent(request.resource.data) &&
+                       // Prevent students from changing their own allow_edit status or other sensitive fields
+                       request.resource.data.allow_edit == resource.data.allow_edit &&
+                       request.resource.data.email == resource.data.email &&
+                       request.resource.data.ma_sinh_vien == resource.data.ma_sinh_vien);
+      
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Thông tin chi tiết về sinh viên và kết quả học tập, rèn luyện.",
+      "type": "object",
+      "properties": {
+        "ma_sinh_vien": { "type": "string", "description": "Mã số sinh viên duy nhất" },
+        "ho_ten": { "type": "string", "description": "Họ và tên đầy đủ" },
+        "gioi_tinh": { "type": "string", "enum": ["Nam", "Nữ"] },
+        "ngay_sinh": { "type": "string", "format": "date", "description": "Ngày sinh" },
+        "que_quan": { "type": "string", "description": "Quê quán" },
+        "cho_o_hien_nay": { "type": "string", "description": "Chỗ ở hiện nay" },
+        "so_dien_thoai": { "type": "string", "description": "Số điện thoại" },
+        "email": { "type": "string", "format": "email", "description": "Email sinh viên" },
+        "ghi_chu": { "type": "string", "description": "Ghi chú thêm" },
+        "allow_edit": { "type": "boolean", "description": "Cho phép sinh viên tự sửa thông tin" },
+        "ngay_vao_doan": { "type": "string", "format": "date" },
+        "ngay_vao_dang": { "type": "string", "format": "date" },
+        "academic": {
+          "type": "object",
+          "properties": {
+            "diem_trung_binh": { "type": "number" },
+            "so_tin_chi_no": { "type": "integer" },
+            "so_mon_truot": { "type": "integer" },
+            "so_buoi_vang": { "type": "integer" },
+            "vi_pham_thi_cu": { "type": "boolean" }
+          }
+        },
+        "conduct": {
+          "type": "object",
+          "properties": {
+            "diem_ren_luyen": { "type": "integer" },
+            "vi_pham_ky_luat": { "type": "integer" },
+            "muc_do_vi_pham": { "type": "string", "enum": ["low", "medium", "high"] }
+          }
+        },
+        "activity": {
+          "type": "object",
+          "properties": {
+            "tham_gia_clb": { "type": "boolean" },
+            "so_hoat_dong_tham_gia": { "type": "integer" },
+            "vai_tro": { "type": "string", "enum": ["member", "core", "leader"] },
+            "giai_thuong": { "type": "integer" }
+          }
+        },
+        "interaction": {
+          "type": "object",
+          "properties": {
+            "tuong_tac_giang_vien": { "type": "string", "enum": ["low", "medium", "high"] },
+            "phan_hoi_som": { "type": "boolean" },
+            "tinh_than_hoc_tap": { "type": "integer" }
+          }
+        },
+        "risk_score": { "type": "number" },
+        "potential_score": { "type": "number" },
+        "risk_level": { "type": "string" },
+        "potential_level": { "type": "string" }
+      },
+      "required": ["ma_sinh_vien", "ho_ten"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Danh sách sinh viên trong lớp"
+    },
+    "/users/{userId}": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string", "enum": ["admin", "student"] },
+          "email": { "type": "string" }
+        }
+      },
+      "description": "Thông tin phân quyền người dùng"
+    }
+  }
+}
