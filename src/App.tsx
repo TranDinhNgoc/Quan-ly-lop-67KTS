@@ -34,7 +34,9 @@ import {
   doc,
   updateDoc,
   deleteDoc,
-  getDocFromServer
+  getDocFromServer,
+  getDocs,
+  limit
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { Student } from './types';
@@ -202,7 +204,8 @@ export default function App() {
         { ma_sinh_vien: "2554104789", ho_ten: "Ngô Phương Việt", gioi_tinh: "Nam", ngay_sinh: "2007-03-31", so_dien_thoai: "0862554003" },
         { ma_sinh_vien: "2554104790", ho_ten: "Vũ Quang Vinh", gioi_tinh: "Nam", ngay_sinh: "2007-11-18", so_dien_thoai: "0936373081" },
         { ma_sinh_vien: "2554104791", ho_ten: "Nguyễn Đăng Vũ", gioi_tinh: "Nam", ngay_sinh: "2007-09-12", so_dien_thoai: "0366584775" },
-        { ma_sinh_vien: "2554104792", ho_ten: "Trần Hải Yến", gioi_tinh: "Nữ", ngay_sinh: "2007-05-20", so_dien_thoai: "0339539326" }
+        { ma_sinh_vien: "2554104792", ho_ten: "Trần Hải Yến", gioi_tinh: "Nữ", ngay_sinh: "2007-05-20", so_dien_thoai: "0339539326" },
+        { ma_sinh_vien: "2554104793", ho_ten: "Trần Đình Dũng", gioi_tinh: "Nam", ngay_sinh: "2007-03-15", so_dien_thoai: "0912345678", gmail: "trandinhdung.francistran@gmail.com" }
       ];
 
       for (const s of mockStudents) {
@@ -212,7 +215,7 @@ export default function App() {
           ...s,
           que_quan: "Chưa cập nhật",
           cho_o_hien_nay: "Chưa cập nhật",
-          gmail: `${s.ma_sinh_vien}@gmail.com`,
+          gmail: (s as any).gmail || `${s.ma_sinh_vien}@gmail.com`,
           email_truong: `${s.ma_sinh_vien}@tlu.edu.vn`,
           chuc_danh: (s as any).chuc_danh || "",
           ghi_chu: "",
@@ -237,9 +240,13 @@ export default function App() {
       // but it might be empty initially. Let's use a timeout or a flag.
     };
     
-    // Simple way: if students is empty after 2 seconds of being logged in
-    const timer = setTimeout(() => {
-      if (students.length === 0) {
+    // Simple way: if students is empty after 3 seconds of being logged in
+    // and we are NOT unauthorized (meaning we haven't confirmed the email is missing yet)
+    // Actually, if we are unauthorized, we SHOULD add mock data if the collection is empty.
+    const timer = setTimeout(async () => {
+      const q = query(collection(db, 'students'), limit(1));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
         addMockData();
       }
     }, 3000);
@@ -524,7 +531,7 @@ export default function App() {
         <header className="bg-white border-b border-stone-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
               <h2 className="text-2xl font-bold text-stone-900">
-                {(activeTab === 'dashboard' || activeTab === 'my-profile') && !isAdmin && 'Hồ sơ cá nhân'}
+                {activeTab === 'dashboard' && !isAdmin && 'Hồ sơ cá nhân'}
                 {activeTab === 'dashboard' && isAdmin && 'Bảng điều khiển'}
                 {activeTab === 'students' && 'Danh sách lớp'}
                 {activeTab === 'officers' && 'Ban cán sự lớp'}
@@ -546,7 +553,7 @@ export default function App() {
                 {activeTab === 'my-profile' && 'Hồ sơ cá nhân'}
               </h2>
               <p className="text-sm text-stone-500">
-                {(activeTab === 'dashboard' || activeTab === 'my-profile') && !isAdmin && 'Kiểm tra và cập nhật thông tin cá nhân'}
+                {activeTab === 'dashboard' && !isAdmin && 'Kiểm tra và cập nhật thông tin cá nhân'}
                 {activeTab === 'dashboard' && isAdmin && 'Theo dõi tình hình lớp học thời gian thực'}
                 {activeTab === 'students' && `Tổng số ${students.length} sinh viên`}
                 {activeTab === 'officers' && `Tổng số ${students.filter(s => s.chuc_danh && s.chuc_danh.trim() !== "").length} cán sự`}
@@ -583,7 +590,7 @@ export default function App() {
 
         <div className="p-8">
           <AnimatePresence mode="wait">
-            {selectedStudentId && selectedStudent ? (
+            {selectedStudentId && selectedStudent && (isAdmin || activeTab === 'my-profile') ? (
               <motion.div
                 key="detail"
                 initial={{ opacity: 0, x: 20 }}
@@ -612,7 +619,7 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
               >
                 {activeTab === 'dashboard' && isAdmin && <Dashboard students={students} onSelectStudent={setSelectedStudentId} />}
-                {(activeTab === 'dashboard' || activeTab === 'my-profile') && !isAdmin && students.length > 0 && (
+                {activeTab === 'dashboard' && !isAdmin && students.length > 0 && (
                   <StudentDashboard student={students[0]} />
                 )}
                 {activeTab === 'students' && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
