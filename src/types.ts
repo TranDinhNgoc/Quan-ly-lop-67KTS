@@ -68,3 +68,21 @@ export interface HistoryRecord {
   message: string;
   readBy: string[];
 }
+
+export interface UpdateRequest {
+  id: string;
+  studentId: string;
+  studentName: string;
+  requestedData: Partial<Student>;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp: any;
+}
+
+export interface Notification {
+  id: string;
+  type: 'update_request';
+  message: string;
+  studentId: string;
+  read: boolean;
+  timestamp: any;
+}

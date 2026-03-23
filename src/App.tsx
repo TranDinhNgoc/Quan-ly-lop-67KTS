@@ -131,7 +131,24 @@ export default function App() {
           setRole('admin');
           setLoading(false);
         } else {
-          // Role will be determined in onSnapshot
+          // Check if student exists
+          const q = query(collection(db, 'students'), or(
+            where('gmail', '==', u.email?.toLowerCase()),
+            where('email_truong', '==', u.email?.toLowerCase())
+          ));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const studentDoc = snapshot.docs[0];
+            if (!studentDoc.data().is_authenticated) {
+              await updateDoc(doc(db, 'students', studentDoc.id), { is_authenticated: true });
+            }
+            setRole('student');
+            setLoading(false);
+          } else {
+            setRole(null);
+            setIsUnauthorized(true);
+            setLoading(false);
+          }
         }
       } else {
         setRole(null);

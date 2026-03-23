@@ -73,5 +73,17 @@ service cloud.firestore {
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']));
       allow delete: if isAdmin();
     }
+
+    match /update_requests/{requestId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.token.email.lower() == resource.data.get('studentEmail', '').lower());
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
   }
 }
