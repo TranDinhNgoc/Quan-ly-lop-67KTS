@@ -75,19 +75,19 @@ service cloud.firestore {
     }
 
     match /update_requests/{requestId} {
-      allow read: if isAdmin() || (isAuthenticated() && exists(/databases/$(database)/documents/students/$(resource.data.studentId)) && isStudent(get(/databases/$(database)/documents/students/$(resource.data.studentId)).data));
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
       allow create: if isAuthenticated();
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     match /notifications/{notificationId} {
-      allow read: if isAdmin() || (isAuthenticated() && exists(/databases/$(database)/documents/students/$(resource.data.studentId)) && isStudent(get(/databases/$(database)/documents/students/$(resource.data.studentId)).data));
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
       allow write: if isAdmin();
     }
 
     match /chat_messages/{messageId} {
-      allow read: if isAdmin() || (isAuthenticated() && exists(/databases/$(database)/documents/students/$(resource.data.studentId)) && isStudent(get(/databases/$(database)/documents/students/$(resource.data.studentId)).data));
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
       allow create: if isAuthenticated();
       allow update: if isAdmin();
       allow delete: if isAdmin();

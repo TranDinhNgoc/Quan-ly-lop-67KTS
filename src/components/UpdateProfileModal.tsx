@@ -4,15 +4,12 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface UpdateProfileModalProps {
-  isOpen: boolean;
   onClose: () => void;
   student: Student;
 }
 
-export default function UpdateProfileModal({ isOpen, onClose, student }: UpdateProfileModalProps) {
+export default function UpdateProfileModal({ onClose, student }: UpdateProfileModalProps) {
   const [formData, setFormData] = useState<Partial<Student>>({});
-
-  if (!isOpen) return null;
 
   const handleSubmit = async () => {
     await addDoc(collection(db, 'update_requests'), {
@@ -45,6 +42,12 @@ export default function UpdateProfileModal({ isOpen, onClose, student }: UpdateP
           placeholder="Số điện thoại mới..."
           className="w-full p-3 border rounded-xl mb-4"
           onChange={(e) => setFormData({...formData, so_dien_thoai: e.target.value})}
+        />
+        <input 
+          type="text"
+          placeholder="Địa chỉ mới..."
+          className="w-full p-3 border rounded-xl mb-4"
+          onChange={(e) => setFormData({...formData, dia_chi: e.target.value})}
         />
         <div className="flex gap-3">
           <button onClick={onClose} className="px-4 py-2 bg-stone-100 rounded-xl">Hủy</button>

@@ -17,6 +17,7 @@ import {
   Award,
   BarChart3,
   Monitor,
+  CheckSquare,
   Clock
 } from 'lucide-react';
 import { 
@@ -52,6 +53,7 @@ import AddStudentModal from './components/AddStudentModal';
 import ImportExcelModal from './components/ImportExcelModal';
 import StudentDashboard from './components/StudentDashboard';
 import StudentUIManagement from './components/StudentUIManagement';
+import UpdateRequestManagement from './components/UpdateRequestManagement';
 import History from './components/History';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -689,6 +691,12 @@ export default function App() {
                   active={activeTab === 'student-ui-mgmt'} 
                   onClick={() => { setActiveTab('student-ui-mgmt'); setSelectedStudentId(null); }} 
                 />
+                <NavItem 
+                  icon={<CheckSquare size={20} />} 
+                  label="Phê duyệt chỉnh sửa" 
+                  active={activeTab === 'update-requests'} 
+                  onClick={() => { setActiveTab('update-requests'); setSelectedStudentId(null); }} 
+                />
               </>
             ) : (
               <NavItem 
@@ -839,6 +847,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
+                {activeTab === 'update-requests' && isAdmin && <UpdateRequestManagement />}
                 {activeTab === 'dashboard' && isAdmin && <Dashboard students={students} onSelectStudent={setSelectedStudentId} />}
                 {activeTab === 'dashboard' && !isAdmin && students.length > 0 && (
                   <StudentDashboard student={students[0]} user={user!} isAdmin={isAdmin} />

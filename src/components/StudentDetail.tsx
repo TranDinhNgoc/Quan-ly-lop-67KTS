@@ -17,7 +17,7 @@ import {
 import { Student } from '../types';
 import { getActionSuggestions } from '../utils/scoring';
 import { formatDate } from '../utils/format';
-import ChatBox from './ChatBox';
+import UpdateProfileModal from './UpdateProfileModal';
 import { User as FirebaseUser } from 'firebase/auth';
 
 interface StudentDetailProps {
@@ -32,8 +32,6 @@ interface StudentDetailProps {
 export default function StudentDetail({ student, isAdmin, user, onBack, onUpdate, onDelete }: StudentDetailProps) {
   if (!student) return null;
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Student>(student);
-  const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const canEdit = isAdmin || student.allow_edit;
@@ -140,6 +138,12 @@ export default function StudentDetail({ student, isAdmin, user, onBack, onUpdate
                 >
                   Chỉnh sửa hồ sơ
                 </button>
+              )}
+              {isEditing && (
+                <UpdateProfileModal 
+                  student={student} 
+                  onClose={() => setIsEditing(false)} 
+                />
               )}
             </>
           )}
