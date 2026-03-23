@@ -59,13 +59,21 @@ export default function ChatBox({ studentId, studentEmail, user, isAdmin }: Chat
   return (
     <div className="bg-white rounded-3xl p-6 shadow-sm border h-[400px] flex flex-col">
       <h2 className="text-xl font-bold mb-4">Trao đổi với {isAdmin ? 'sinh viên' : 'Admin'}</h2>
-      <div className="flex-1 overflow-y-auto mb-4 space-y-2">
-        {messages.map(msg => (
-          <div key={msg.id} className={`p-3 rounded-2xl max-w-[80%] ${msg.senderId === user.uid ? 'bg-emerald-100 ml-auto' : 'bg-stone-100'}`}>
-            <p className="text-xs font-bold text-stone-500">{msg.senderName}</p>
-            <p>{msg.message}</p>
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+        {messages.map(msg => {
+          const isOwnMessage = msg.senderId === user.uid;
+          const timestamp = msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+          return (
+            <div key={msg.id} className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+              <div className={`p-3 rounded-2xl max-w-[80%] ${isOwnMessage ? 'bg-emerald-600 text-white' : 'bg-stone-100 text-stone-900'}`}>
+                <p className="text-sm">{msg.message}</p>
+              </div>
+              <p className={`text-[10px] text-stone-400 mt-1 ${isOwnMessage ? 'mr-1' : 'ml-1'}`}>
+                {msg.senderName} • {timestamp}
+              </p>
+            </div>
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
       <div className="flex gap-2">
