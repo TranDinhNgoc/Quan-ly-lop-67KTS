@@ -41,6 +41,15 @@ export default function ChatBox({ studentId, user, isAdmin }: ChatBoxProps) {
       timestamp: serverTimestamp(),
       read: false
     });
+
+    await addDoc(collection(db, 'notifications'), {
+      type: 'chat_message',
+      message: `Tin nhắn mới từ ${isAdmin ? 'Admin' : 'Sinh viên'}`,
+      studentId,
+      read: false,
+      timestamp: serverTimestamp()
+    });
+    
     setNewMessage('');
   };
 

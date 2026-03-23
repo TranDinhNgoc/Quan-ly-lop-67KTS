@@ -802,6 +802,7 @@ export default function App() {
                 <StudentDetail 
                   student={selectedStudent!} 
                   isAdmin={isAdmin}
+                  user={user}
                   onBack={isAdmin ? () => setSelectedStudentId(null) : undefined} 
                   onUpdate={async (data) => {
                     const scores = calculateScores(data);

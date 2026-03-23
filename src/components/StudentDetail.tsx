@@ -17,16 +17,19 @@ import {
 import { Student } from '../types';
 import { getActionSuggestions } from '../utils/scoring';
 import { formatDate } from '../utils/format';
+import ChatBox from './ChatBox';
+import { User as FirebaseUser } from 'firebase/auth';
 
 interface StudentDetailProps {
   student: Student;
   isAdmin: boolean;
+  user: FirebaseUser;
   onBack?: () => void;
   onUpdate: (data: Partial<Student>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
 
-export default function StudentDetail({ student, isAdmin, onBack, onUpdate, onDelete }: StudentDetailProps) {
+export default function StudentDetail({ student, isAdmin, user, onBack, onUpdate, onDelete }: StudentDetailProps) {
   if (!student) return null;
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Student>(student);
@@ -210,6 +213,8 @@ export default function StudentDetail({ student, isAdmin, onBack, onUpdate, onDe
               ))}
             </ul>
           </div>
+          
+          <ChatBox studentId={student.id} user={user} isAdmin={isAdmin} />
         </div>
 
         {/* Details Tabs/Sections */}
