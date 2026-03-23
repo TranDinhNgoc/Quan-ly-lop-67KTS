@@ -72,6 +72,15 @@ export default function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
+  const selectedStudent = students.find(s => s.id === selectedStudentId);
+
+  useEffect(() => {
+    console.log("students:", students);
+    console.log("activeTab:", activeTab);
+    console.log("selectedStudentId:", selectedStudentId);
+    console.log("selectedStudent:", selectedStudent);
+  }, [students, activeTab, selectedStudentId, selectedStudent]);
+
   const ADMIN_EMAIL = "manamedruby@gmail.com";
 
   enum OperationType {
@@ -161,7 +170,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !user.email) return;
 
     let q;
     if (user.email === ADMIN_EMAIL) {
@@ -192,10 +201,10 @@ export default function App() {
             const normalizedGmail = s.gmail?.toLowerCase()?.trim();
             const normalizedEmailTruong = s.email_truong?.toLowerCase()?.trim();
             
-            if (s.gmail && s.gmail !== normalizedGmail) {
+            if (s.gmail && s.gmail !== normalizedGmail && typeof normalizedGmail === 'string') {
               updates.gmail = normalizedGmail;
             }
-            if (s.email_truong && s.email_truong !== normalizedEmailTruong) {
+            if (s.email_truong && s.email_truong !== normalizedEmailTruong && typeof normalizedEmailTruong === 'string') {
               updates.email_truong = normalizedEmailTruong;
             }
             
@@ -513,7 +522,6 @@ export default function App() {
   }
 
   const isAdmin = role === 'admin';
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   return (
     <div className="min-h-screen bg-stone-50 flex">
@@ -851,6 +859,9 @@ export default function App() {
                 {activeTab === 'dashboard' && isAdmin && <Dashboard students={students} onSelectStudent={setSelectedStudentId} />}
                 {activeTab === 'dashboard' && !isAdmin && students.length > 0 && (
                   <StudentDashboard student={students[0]} user={user!} isAdmin={isAdmin} />
+                )}
+                {activeTab === 'my-profile' && !selectedStudent && (
+                  <div className="p-8 text-center text-stone-500">Không tìm thấy thông tin sinh viên.</div>
                 )}
                 {activeTab === 'my-profile' && isAdmin && selectedStudentId && (
                   <StudentDashboard 

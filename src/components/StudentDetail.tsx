@@ -18,6 +18,7 @@ import { Student } from '../types';
 import { getActionSuggestions } from '../utils/scoring';
 import { formatDate } from '../utils/format';
 import UpdateProfileModal from './UpdateProfileModal';
+import ChatBox from './ChatBox';
 import { User as FirebaseUser } from 'firebase/auth';
 
 interface StudentDetailProps {

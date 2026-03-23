@@ -16,7 +16,10 @@ export default function AdminNotifications() {
 
   const handleApprove = async (request: UpdateRequest) => {
     await updateDoc(doc(db, 'update_requests', request.id), { status: 'approved' });
-    await updateDoc(doc(db, 'students', request.studentId), request.requestedData);
+    const cleanData = Object.fromEntries(
+      Object.entries(request.requestedData).filter(([_, v]) => v !== undefined)
+    );
+    await updateDoc(doc(db, 'students', request.studentId), cleanData);
   };
 
   return (
