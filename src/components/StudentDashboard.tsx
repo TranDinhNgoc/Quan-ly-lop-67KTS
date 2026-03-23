@@ -16,12 +16,17 @@ import { motion } from 'framer-motion';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
+import { User as FirebaseUser } from 'firebase/auth';
+import ChatBox from './ChatBox';
+
 interface StudentDashboardProps {
   student: Student;
+  user: FirebaseUser;
+  isAdmin: boolean;
   onClosePreview?: () => void;
 }
 
-export default function StudentDashboard({ student, onClosePreview }: StudentDashboardProps) {
+export default function StudentDashboard({ student, user, isAdmin, onClosePreview }: StudentDashboardProps) {
   const [isExporting, setIsExporting] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const suggestions = getActionSuggestions(student);
@@ -223,6 +228,13 @@ export default function StudentDashboard({ student, onClosePreview }: StudentDas
               {student.ghi_chu || "Em cần chú ý hơn trong việc tham gia các hoạt động của Đoàn Hội."}
             </p>
           </div>
+          
+          <ChatBox 
+            studentId={student.id} 
+            studentEmail={student.gmail || student.email_truong || ''}
+            user={user} 
+            isAdmin={isAdmin} 
+          />
         </div>
       </div>
 

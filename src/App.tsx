@@ -841,11 +841,13 @@ export default function App() {
               >
                 {activeTab === 'dashboard' && isAdmin && <Dashboard students={students} onSelectStudent={setSelectedStudentId} />}
                 {activeTab === 'dashboard' && !isAdmin && students.length > 0 && (
-                  <StudentDashboard student={students[0]} />
+                  <StudentDashboard student={students[0]} user={user!} isAdmin={isAdmin} />
                 )}
                 {activeTab === 'my-profile' && isAdmin && selectedStudentId && (
                   <StudentDashboard 
                     student={students.find(s => s.id === selectedStudentId)!} 
+                    user={user!}
+                    isAdmin={isAdmin}
                     onClosePreview={() => { setSelectedStudentId(null); setActiveTab('student-ui-mgmt'); }}
                   />
                 )}
