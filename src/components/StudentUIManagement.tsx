@@ -216,7 +216,12 @@ export default function StudentUIManagement({ students, onPreview, user, isAdmin
                 {students.find(s => s.id === previewStudentId) && (
                   <div className="space-y-8">
                     <StudentDashboard student={students.find(s => s.id === previewStudentId)!} />
-                    <ChatBox studentId={previewStudentId!} user={user} isAdmin={isAdmin} />
+                    <ChatBox 
+                      studentId={previewStudentId!} 
+                      studentEmail={students.find(s => s.id === previewStudentId)!.gmail || students.find(s => s.id === previewStudentId)!.email_truong || ''}
+                      user={user} 
+                      isAdmin={isAdmin} 
+                    />
                   </div>
                 )}
               </div>

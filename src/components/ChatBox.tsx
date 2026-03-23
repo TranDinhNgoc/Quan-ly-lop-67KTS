@@ -6,11 +6,12 @@ import { User } from 'firebase/auth';
 
 interface ChatBoxProps {
   studentId: string;
+  studentEmail: string;
   user: User;
   isAdmin: boolean;
 }
 
-export default function ChatBox({ studentId, user, isAdmin }: ChatBoxProps) {
+export default function ChatBox({ studentId, studentEmail, user, isAdmin }: ChatBoxProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,6 +36,7 @@ export default function ChatBox({ studentId, user, isAdmin }: ChatBoxProps) {
     if (!newMessage.trim()) return;
     await addDoc(collection(db, 'chat_messages'), {
       studentId,
+      studentEmail,
       senderId: user.uid,
       senderName: isAdmin ? 'Admin' : user.displayName || 'Sinh viên',
       message: newMessage,
@@ -46,6 +48,7 @@ export default function ChatBox({ studentId, user, isAdmin }: ChatBoxProps) {
       type: 'chat_message',
       message: `Tin nhắn mới từ ${isAdmin ? 'Admin' : 'Sinh viên'}`,
       studentId,
+      studentEmail,
       read: false,
       timestamp: serverTimestamp()
     });

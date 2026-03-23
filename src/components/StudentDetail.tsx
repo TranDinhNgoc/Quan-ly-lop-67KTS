@@ -214,7 +214,7 @@ export default function StudentDetail({ student, isAdmin, user, onBack, onUpdate
             </ul>
           </div>
           
-          <ChatBox studentId={student.id} user={user} isAdmin={isAdmin} />
+          <ChatBox studentId={student.id} studentEmail={student.gmail || student.email_truong || ''} user={user} isAdmin={isAdmin} />
         </div>
 
         {/* Details Tabs/Sections */}
