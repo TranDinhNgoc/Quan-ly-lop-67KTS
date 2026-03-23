@@ -80,9 +80,19 @@ export interface UpdateRequest {
 
 export interface Notification {
   id: string;
-  type: 'update_request';
+  type: 'update_request' | 'chat_message';
   message: string;
   studentId: string;
   read: boolean;
   timestamp: any;
+}
+
+export interface ChatMessage {
+  id: string;
+  studentId: string;
+  senderId: string;
+  senderName: string;
+  message: string;
+  timestamp: any;
+  read: boolean;
 }

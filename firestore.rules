@@ -82,8 +82,15 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.token.email.lower() == resource.data.get('studentEmail', '').lower());
       allow write: if isAdmin();
+    }
+
+    match /chat_messages/{messageId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.token.email.lower() == resource.data.get('studentEmail', '').lower());
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }
