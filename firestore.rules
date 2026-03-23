@@ -9,13 +9,20 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && 
         (request.auth.token.email == "manamedruby@gmail.com" || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin");
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == "admin"));
     }
 
     function isStudent(studentData) {
       return isAuthenticated() && 
-        (request.auth.token.email.lower() == studentData.gmail.lower() || 
-         request.auth.token.email.lower() == studentData.email_truong.lower());
+        (request.auth.token.email.lower() == studentData.get('gmail', '').lower() || 
+         request.auth.token.email.lower() == studentData.get('email_truong', '').lower());
+    }
+
+    function isHistoryOwner(historyData) {
+      return isAuthenticated() && 
+        (request.auth.token.email.lower() == historyData.get('studentEmail', '').lower() || 
+         request.auth.token.email.lower() == historyData.get('studentEmailTruong', '').lower());
     }
 
     function isValidStudent(data) {
@@ -39,13 +46,31 @@ service cloud.firestore {
       // Students can update their own record ONLY if allow_edit is true.
       allow update: if (isAdmin() && isValidStudent(request.resource.data)) || 
                       (isStudent(resource.data) && 
-                       resource.data.allow_edit == true && 
+                       resource.data.get('allow_edit', false) == true && 
                        isValidStudent(request.resource.data) &&
                        // Prevent students from changing their own allow_edit status or other sensitive fields
-                       request.resource.data.allow_edit == resource.data.allow_edit &&
-                       request.resource.data.email == resource.data.email &&
-                       request.resource.data.ma_sinh_vien == resource.data.ma_sinh_vien);
+                       request.resource.data.get('allow_edit', false) == resource.data.get('allow_edit', false) &&
+                       request.resource.data.get('gmail', '') == resource.data.get('gmail', '') &&
+                       request.resource.data.get('ma_sinh_vien', '') == resource.data.get('ma_sinh_vien', ''));
       
+      allow delete: if isAdmin();
+    }
+
+    match /history/{historyId} {
+      // Admins can read all history.
+      // Students can read history related to them using denormalized email.
+      allow read: if isAdmin() || isHistoryOwner(resource.data);
+      
+      // Only admins or the system (via admin) can create history.
+      // In this app, we'll allow authenticated users to create history if it's about them (e.g. they edited their profile)
+      // or if they are admin.
+      allow create: if isAdmin() || (isAuthenticated() && isHistoryOwner(request.resource.data));
+      
+      // History should be immutable once created, or only admin can update (e.g. to mark as read)
+      // Students can update readBy to mark as read.
+      allow update: if isAdmin() || 
+                      (isHistoryOwner(resource.data) && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']));
       allow delete: if isAdmin();
     }
   }

@@ -49,7 +49,22 @@ export interface Student {
   potential_score: number;
   risk_level: 'low' | 'medium' | 'high';
   potential_level: 'none' | 'potential' | 'excellent';
+  is_authenticated?: boolean;
+  is_online?: boolean;
 }
 
 export type RiskLevel = 'low' | 'medium' | 'high';
 export type PotentialLevel = 'none' | 'potential' | 'excellent';
+
+export interface HistoryRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  changedBy: string;
+  changedByName: string;
+  timestamp: any;
+  type: 'create' | 'update' | 'delete';
+  details: string;
+  message: string;
+  readBy: string[];
+}

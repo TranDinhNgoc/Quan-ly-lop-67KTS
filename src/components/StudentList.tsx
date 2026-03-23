@@ -7,7 +7,9 @@ import {
   AlertCircle,
   CheckCircle,
   User,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Trash2,
+  Edit
 } from 'lucide-react';
 import { Student } from '../types';
 import { formatDate } from '../utils/format';
@@ -22,12 +24,14 @@ function cn(...inputs: ClassValue[]) {
 interface StudentListProps {
   students: Student[];
   onSelectStudent: (id: string) => void;
+  onDeleteStudent?: (id: string) => void;
   filterType?: 'risk' | 'potential';
 }
 
-export default function StudentList({ students, onSelectStudent, filterType }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onDeleteStudent, filterType }: StudentListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'gpa' | 'risk' | 'potential'>('name');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const filteredStudents = students
     .filter(s => 
@@ -44,6 +48,37 @@ export default function StudentList({ students, onSelectStudent, filterType }: S
 
   return (
     <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
+      {/* Confirmation Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-center text-stone-900 mb-2">Xác nhận xóa</h3>
+            <p className="text-stone-500 text-center mb-8">
+              Bạn có chắc chắn muốn xóa sinh viên này? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 px-6 py-3 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-2xl font-bold transition-all"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={() => {
+                  if (onDeleteStudent) onDeleteStudent(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }}
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all"
+              >
+                Xóa ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="p-6 border-b border-stone-100 flex flex-col md:flex-row md:items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
@@ -87,6 +122,7 @@ export default function StudentList({ students, onSelectStudent, filterType }: S
             <tr className="bg-stone-50/50">
               <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-wider w-16">STT</th>
               <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-wider">Sinh viên</th>
+              <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-wider">Trạng thái</th>
               <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-wider">Giới tính</th>
               <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-wider">Ngày sinh</th>
               <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-wider">Gmail</th>
@@ -116,6 +152,10 @@ export default function StudentList({ students, onSelectStudent, filterType }: S
                     </div>
                   </div>
                 </td>
+                <td className="px-6 py-4 space-y-1">
+                  <Badge type={student.is_authenticated ? 'success' : 'danger'} label={student.is_authenticated ? 'Đã xác thực' : 'Chưa xác thực'} />
+                  <Badge type={student.is_online ? 'success' : 'info'} label={student.is_online ? 'Đang truy cập' : 'Ngoại tuyến'} />
+                </td>
                 <td className="px-6 py-4 text-sm text-stone-600">{student.gioi_tinh}</td>
                 <td className="px-6 py-4 text-sm text-stone-600">{formatDate(student.ngay_sinh)}</td>
                 <td className="px-6 py-4 text-sm text-stone-600">{student.gmail}</td>
@@ -130,9 +170,28 @@ export default function StudentList({ students, onSelectStudent, filterType }: S
                   <p className="text-xs text-stone-500 italic">{student.ghi_chu || ''}</p>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
-                    <ChevronRight size={20} />
-                  </button>
+                  <div className="flex items-center justify-end gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectStudent(student.id);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all text-xs font-bold border border-emerald-100"
+                    >
+                      <Edit size={14} />
+                      Thay đổi
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeleteId(student.id);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-all text-xs font-bold border border-red-100"
+                    >
+                      <Trash2 size={14} />
+                      Xóa
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

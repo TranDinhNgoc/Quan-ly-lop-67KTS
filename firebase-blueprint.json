@@ -58,12 +58,33 @@
         "potential_level": { "type": "string" }
       },
       "required": ["ma_sinh_vien", "ho_ten"]
+    },
+    "History": {
+      "title": "History",
+      "description": "Lịch sử thay đổi hồ sơ sinh viên.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "description": "ID của sinh viên bị thay đổi" },
+        "studentName": { "type": "string", "description": "Tên của sinh viên bị thay đổi" },
+        "changedBy": { "type": "string", "description": "UID của người thực hiện thay đổi" },
+        "changedByName": { "type": "string", "description": "Tên của người thực hiện thay đổi" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["create", "update", "delete"] },
+        "details": { "type": "string", "description": "Chi tiết các trường bị thay đổi" },
+        "message": { "type": "string", "description": "Thông báo tóm tắt" },
+        "readBy": { "type": "array", "items": { "type": "string" }, "description": "Danh sách UID đã đọc thông báo" }
+      },
+      "required": ["studentId", "timestamp", "type", "message"]
     }
   },
   "firestore": {
     "/students/{studentId}": {
       "schema": "Student",
       "description": "Danh sách sinh viên trong lớp"
+    },
+    "/history/{historyId}": {
+      "schema": "History",
+      "description": "Lịch sử thay đổi và thông báo"
     },
     "/users/{userId}": {
       "schema": {

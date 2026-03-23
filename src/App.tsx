@@ -16,7 +16,8 @@ import {
   BookOpen,
   Award,
   BarChart3,
-  Monitor
+  Monitor,
+  Clock
 } from 'lucide-react';
 import { 
   onAuthStateChanged, 
@@ -38,10 +39,11 @@ import {
   deleteDoc,
   getDocFromServer,
   getDocs,
-  limit
+  limit,
+  serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { Student } from './types';
+import { Student, HistoryRecord } from './types';
 import { calculateScores } from './utils/scoring';
 import Dashboard from './components/Dashboard';
 import StudentList from './components/StudentList';
@@ -50,6 +52,7 @@ import AddStudentModal from './components/AddStudentModal';
 import ImportExcelModal from './components/ImportExcelModal';
 import StudentDashboard from './components/StudentDashboard';
 import StudentUIManagement from './components/StudentUIManagement';
+import History from './components/History';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function App() {
@@ -58,7 +61,8 @@ export default function App() {
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'officers' | 'warnings' | 'potential' | 'student-ui-mgmt' | 'conduct' | 'conduct-25-26' | 'conduct-26-27' | 'conduct-27-28' | 'conduct-28-29' | 'summary' | 'summary-25-26' | 'summary-26-27' | 'summary-27-28' | 'summary-28-29' | 'summary-internship' | 'summary-thesis' | 'my-profile'>('dashboard');
+  const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'officers' | 'warnings' | 'potential' | 'student-ui-mgmt' | 'conduct' | 'conduct-25-26' | 'conduct-26-27' | 'conduct-27-28' | 'conduct-28-29' | 'summary' | 'summary-25-26' | 'summary-26-27' | 'summary-27-28' | 'summary-28-29' | 'summary-internship' | 'summary-thesis' | 'my-profile' | 'history'>('dashboard');
   const [isClassMgmtOpen, setIsClassMgmtOpen] = useState(true);
   const [isConductOpen, setIsConductOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
@@ -67,6 +71,57 @@ export default function App() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const ADMIN_EMAIL = "manamedruby@gmail.com";
+
+  enum OperationType {
+    CREATE = 'create',
+    UPDATE = 'update',
+    DELETE = 'delete',
+    LIST = 'list',
+    GET = 'get',
+    WRITE = 'write',
+  }
+
+  interface FirestoreErrorInfo {
+    error: string;
+    operationType: OperationType;
+    path: string | null;
+    authInfo: {
+      userId: string | undefined;
+      email: string | null | undefined;
+      emailVerified: boolean | undefined;
+      isAnonymous: boolean | undefined;
+      tenantId: string | null | undefined;
+      providerInfo: {
+        providerId: string;
+        displayName: string | null;
+        email: string | null;
+        photoUrl: string | null;
+      }[];
+    }
+  }
+
+  const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
+    const errInfo: FirestoreErrorInfo = {
+      error: error instanceof Error ? error.message : String(error),
+      authInfo: {
+        userId: auth.currentUser?.uid,
+        email: auth.currentUser?.email,
+        emailVerified: auth.currentUser?.emailVerified,
+        isAnonymous: auth.currentUser?.isAnonymous,
+        tenantId: auth.currentUser?.tenantId,
+        providerInfo: auth.currentUser?.providerData.map(provider => ({
+          providerId: provider.providerId,
+          displayName: provider.displayName,
+          email: provider.email,
+          photoUrl: provider.photoURL
+        })) || []
+      },
+      operationType,
+      path
+    }
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    // throw new Error(JSON.stringify(errInfo)); // We don't want to crash the whole app here, just log it.
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -129,7 +184,7 @@ export default function App() {
               try {
                 await updateDoc(doc(db, 'students', s.id), updates);
               } catch (err) {
-                console.error("Failed to normalize email for student:", s.ho_ten, err);
+                handleFirestoreError(err, OperationType.UPDATE, `students/${s.id}`);
               }
             }
           });
@@ -153,12 +208,39 @@ export default function App() {
       }
       setLoading(false);
     }, (error) => {
-      console.error("Firestore Error: ", error);
+      handleFirestoreError(error, OperationType.LIST, 'students');
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let q;
+    if (user.email === ADMIN_EMAIL) {
+      q = query(collection(db, 'history'), orderBy('timestamp', 'desc'));
+    } else {
+      const email = user.email.toLowerCase();
+      q = query(collection(db, 'history'), or(
+        where('studentEmail', '==', email),
+        where('studentEmailTruong', '==', email)
+      ), orderBy('timestamp', 'desc'));
+    }
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const historyData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as HistoryRecord[];
+      setHistory(historyData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'history');
+    });
+
+    return () => unsubscribe();
+  }, [user, students]);
 
   useEffect(() => {
     if (!user || students.length > 0) return;
@@ -296,6 +378,64 @@ export default function App() {
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error("Login failed", error);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'history' && user && history.length > 0) {
+      const unreadHistory = history.filter(h => !h.readBy?.includes(user.uid));
+      unreadHistory.forEach(async (h) => {
+        try {
+          await updateDoc(doc(db, 'history', h.id), {
+            readBy: [...(h.readBy || []), user.uid]
+          });
+        } catch (err) {
+          console.error("Failed to mark history as read:", err);
+        }
+      });
+    }
+  }, [activeTab, user, history]);
+
+  const logHistory = async (studentId: string, studentName: string, studentEmail: string, studentEmailTruong: string, type: 'create' | 'update' | 'delete', message: string, details: string = '') => {
+    if (!user) return;
+    try {
+      await addDoc(collection(db, 'history'), {
+        studentId,
+        studentName,
+        studentEmail: studentEmail?.toLowerCase() || '',
+        studentEmailTruong: studentEmailTruong?.toLowerCase() || '',
+        changedBy: user.uid,
+        changedByName: user.displayName || user.email,
+        timestamp: serverTimestamp(),
+        type,
+        details,
+        message,
+        readBy: [user.uid]
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'history');
+    }
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+    try {
+      const studentToDelete = students.find(s => s.id === id);
+      await deleteDoc(doc(db, 'students', id));
+      if (studentToDelete) {
+        await logHistory(
+          id, 
+          studentToDelete.ho_ten, 
+          studentToDelete.gmail || '', 
+          studentToDelete.email_truong || '', 
+          'delete', 
+          `Đã xóa sinh viên ${studentToDelete.ho_ten}`
+        );
+      }
+      if (selectedStudentId === id) {
+        setSelectedStudentId(null);
+      }
+    } catch (error) {
+      console.error("Error deleting student:", error);
     }
   };
 
@@ -541,6 +681,13 @@ export default function App() {
                 onClick={() => { setActiveTab('my-profile'); if (students.length > 0) setSelectedStudentId(students[0].id); }} 
               />
             )}
+            <NavItem 
+              icon={<Clock size={20} />} 
+              label="Lịch sử & Thông báo" 
+              active={activeTab === 'history'} 
+              onClick={() => setActiveTab('history')} 
+              badge={user ? history.filter(h => !h.readBy?.includes(user.uid)).length : 0}
+            />
           </nav>
         </div>
 
@@ -581,6 +728,7 @@ export default function App() {
                 {activeTab === 'summary-26-27' && 'Điểm tổng hợp 26-27'}
                 {activeTab === 'summary-27-28' && 'Điểm tổng hợp 27-28'}
                 {activeTab === 'summary-28-29' && 'Điểm tổng hợp 28-29'}
+                {activeTab === 'history' && 'Lịch sử & Thông báo'}
                 {activeTab === 'summary-internship' && 'Điểm thực tập nghề nghiệp'}
                 {activeTab === 'summary-thesis' && 'Điểm khóa luận tốt nghiệp'}
                 {activeTab === 'warnings' && 'Hệ thống Cảnh báo sớm'}
@@ -597,6 +745,7 @@ export default function App() {
                 {activeTab.startsWith('conduct-') && 'Theo dõi điểm rèn luyện chi tiết theo năm học'}
                 {activeTab === 'summary' && 'Thống kê và tổng hợp kết quả học tập'}
                 {activeTab.startsWith('summary-') && 'Thống kê kết quả học tập chi tiết'}
+                {activeTab === 'history' && 'Theo dõi tất cả các thay đổi và thông báo trong hệ thống'}
                 {activeTab === 'warnings' && 'Phát hiện sinh viên có nguy cơ cao'}
                 {activeTab === 'potential' && 'Phát hiện nhân tố xuất sắc'}
                 {activeTab === 'student-ui-mgmt' && 'Quản lý quyền hạn và xem trước giao diện sinh viên'}
@@ -645,6 +794,19 @@ export default function App() {
                       email_truong: data.email_truong?.toLowerCase()?.trim()
                     };
                     await updateDoc(doc(db, 'students', selectedStudentId), { ...studentWithLowerEmail, ...scores });
+                    
+                    const student = students.find(s => s.id === selectedStudentId);
+                    if (student) {
+                      await logHistory(
+                        selectedStudentId, 
+                        student.ho_ten, 
+                        student.gmail || '',
+                        student.email_truong || '',
+                        'update', 
+                        `Đã cập nhật hồ sơ sinh viên ${student.ho_ten}`,
+                        JSON.stringify(data)
+                      );
+                    }
                   }}
                   onDelete={async (id) => {
                     await deleteDoc(doc(db, 'students', id));
@@ -669,14 +831,15 @@ export default function App() {
                     onClosePreview={() => { setSelectedStudentId(null); setActiveTab('student-ui-mgmt'); }}
                   />
                 )}
-                {activeTab === 'students' && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
-                {activeTab === 'officers' && <StudentList students={students.filter(s => s.chuc_danh && s.chuc_danh.trim() !== "")} onSelectStudent={setSelectedStudentId} />}
-                {activeTab === 'conduct' && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
-                {activeTab.startsWith('conduct-') && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
-                {activeTab === 'summary' && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
-                {activeTab.startsWith('summary-') && <StudentList students={students} onSelectStudent={setSelectedStudentId} />}
-                {activeTab === 'warnings' && <StudentList students={students.filter(s => s.risk_level === 'high' || s.risk_level === 'medium')} onSelectStudent={setSelectedStudentId} filterType="risk" />}
-                {activeTab === 'potential' && <StudentList students={students.filter(s => s.potential_level !== 'none')} onSelectStudent={setSelectedStudentId} filterType="potential" />}
+                {activeTab === 'students' && <StudentList students={students} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} />}
+                {activeTab === 'officers' && <StudentList students={students.filter(s => s.chuc_danh && s.chuc_danh.trim() !== "")} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} />}
+                {activeTab === 'conduct' && <StudentList students={students} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} />}
+                {activeTab.startsWith('conduct-') && <StudentList students={students} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} />}
+                {activeTab === 'summary' && <StudentList students={students} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} />}
+                {activeTab.startsWith('summary-') && <StudentList students={students} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} />}
+                {activeTab === 'warnings' && <StudentList students={students.filter(s => s.risk_level === 'high' || s.risk_level === 'medium')} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} filterType="risk" />}
+                {activeTab === 'potential' && <StudentList students={students.filter(s => s.potential_level !== 'none')} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} filterType="potential" />}
+                {activeTab === 'history' && <History history={history} />}
                 {activeTab === 'student-ui-mgmt' && <StudentUIManagement students={students} onPreview={(id) => { setSelectedStudentId(id); setActiveTab('my-profile'); }} />}
                 {activeTab === 'my-profile' && isAdmin && students.length > 0 && (
                   <div className="bg-white p-12 rounded-3xl border border-stone-200 text-center">
@@ -709,7 +872,16 @@ export default function App() {
             gmail: data.gmail?.toLowerCase()?.trim(),
             email_truong: data.email_truong?.toLowerCase()?.trim()
           };
-          await addDoc(collection(db, 'students'), { ...studentWithLowerEmail, ...scores });
+          const docRef = await addDoc(collection(db, 'students'), { ...studentWithLowerEmail, ...scores });
+          await logHistory(
+            docRef.id, 
+            data.ho_ten, 
+            data.gmail || '',
+            data.email_truong || '',
+            'create', 
+            `Đã thêm sinh viên mới: ${data.ho_ten}`,
+            JSON.stringify(data)
+          );
           setIsAddModalOpen(false);
         }}
       />
@@ -727,6 +899,15 @@ export default function App() {
             };
             await addDoc(collection(db, 'students'), studentWithLowerEmail);
           }
+          await logHistory(
+            'batch-import', 
+            'Hệ thống', 
+            '',
+            '',
+            'create', 
+            `Đã import ${studentsData.length} sinh viên từ file Excel`,
+            `Danh sách: ${studentsData.map(s => s.ho_ten).join(', ')}`
+          );
           setIsImportModalOpen(false);
         }}
       />
@@ -734,18 +915,23 @@ export default function App() {
   );
 }
 
-function NavItem({ icon, label, active, onClick, isSubItem }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, isSubItem?: boolean }) {
+function NavItem({ icon, label, active, onClick, isSubItem, badge }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, isSubItem?: boolean, badge?: number }) {
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium ${
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium relative ${
         active 
           ? 'bg-emerald-50 text-emerald-700 shadow-sm' 
           : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'
       } ${isSubItem ? 'py-2 px-3' : ''}`}
     >
       {icon}
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
     </button>
   );
 }
