@@ -858,7 +858,7 @@ export default function App() {
                 {activeTab === 'warnings' && <StudentList students={students.filter(s => s.risk_level === 'high' || s.risk_level === 'medium')} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} filterType="risk" />}
                 {activeTab === 'potential' && <StudentList students={students.filter(s => s.potential_level !== 'none')} onSelectStudent={setSelectedStudentId} onDeleteStudent={handleDeleteStudent} filterType="potential" />}
                 {activeTab === 'history' && <History history={history} />}
-                {activeTab === 'student-ui-mgmt' && <StudentUIManagement students={students} onPreview={(id) => { setSelectedStudentId(id); setActiveTab('my-profile'); }} />}
+                {activeTab === 'student-ui-mgmt' && <StudentUIManagement students={students} onPreview={(id) => { setSelectedStudentId(id); setActiveTab('my-profile'); }} user={user!} isAdmin={isAdmin} />}
                 {activeTab === 'my-profile' && isAdmin && students.length > 0 && (
                   <div className="bg-white p-12 rounded-3xl border border-stone-200 text-center">
                     <UserCircle size={64} className="mx-auto text-stone-300 mb-4" />

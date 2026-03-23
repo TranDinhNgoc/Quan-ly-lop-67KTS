@@ -14,13 +14,17 @@ import { db } from '../firebase';
 import StudentDashboard from './StudentDashboard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import ChatBox from './ChatBox';
+import { User as FirebaseUser } from 'firebase/auth';
 
 interface StudentUIManagementProps {
   students: Student[];
   onPreview: (studentId: string) => void;
+  user: FirebaseUser;
+  isAdmin: boolean;
 }
 
-export default function StudentUIManagement({ students, onPreview }: StudentUIManagementProps) {
+export default function StudentUIManagement({ students, onPreview, user, isAdmin }: StudentUIManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [previewStudentId, setPreviewStudentId] = useState<string | null>(null);
 
@@ -210,7 +214,10 @@ export default function StudentUIManagement({ students, onPreview }: StudentUIMa
               </div>
               <div className="flex-1 overflow-y-auto p-8">
                 {students.find(s => s.id === previewStudentId) && (
-                  <StudentDashboard student={students.find(s => s.id === previewStudentId)!} />
+                  <div className="space-y-8">
+                    <StudentDashboard student={students.find(s => s.id === previewStudentId)!} />
+                    <ChatBox studentId={previewStudentId!} user={user} isAdmin={isAdmin} />
+                  </div>
                 )}
               </div>
               <div className="p-4 bg-white border-t border-stone-200 text-center">
